@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaizen Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg-deep:#12161a;
+    --bg-floor: radial-gradient(circle at 1px 1px, #1c2226 1px, transparent 0);
+    --panel:#1b2126;
+    --panel-alt:#20272c;
+    --ink:#eeece5;
+    --muted:#8c9599;
+    --line: #2b3339;
+    --red:#d6402c;
+    --red-dim: #3a2320;
+    --amber:#e0a526;
+    --amber-dim:#3a3120;
+    --green:#5b9c6a;
+    --green-dim:#1f3226;
+    --blue:#4a86a8;
+    --blue-dim:#1e2c33;
+    --violet:#9b7ede;
+  }
+  html[data-theme="light"]{
+    --bg-deep:#f3f1ec;
+    --bg-floor: radial-gradient(circle at 1px 1px, #e4e1d8 1px, transparent 0);
+    --panel:#ffffff;
+    --panel-alt:#f5f3ee;
+    --ink:#1c1c1e;
+    --muted:#767f85;
+    --line: #e2e0da;
+    --red:#c23a26;
+    --red-dim: #fbe9e6;
+    --amber:#b4780c;
+    --amber-dim:#fbf0da;
+    --green:#3f7a4f;
+    --green-dim:#e7f2ea;
+    --blue:#396c8a;
+    --blue-dim:#e6eff3;
+    --violet:#7c5cbf;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background-color:var(--bg-deep);
+    background-image: var(--bg-floor);
+    background-size: 22px 22px;
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:100vh;
+  }
+  a{ color:inherit; }
+  .display{ font-family:'Oswald', sans-serif; text-transform:uppercase; letter-spacing:0.04em; }
+  .mono{ font-family:'IBM Plex Mono', monospace; }
+
+  header.masthead{
+    position:relative;
+    padding: 24px 32px 22px;
+    border-bottom: 3px solid var(--red);
+    background: linear-gradient(180deg, rgba(27,33,38,0.9), rgba(27,33,38,0.4));
+    box-shadow: 0 6px 24px rgba(0,0,0,0.18);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; text-align:center;
+  }
+  .kaizen-mark{
+    position:absolute; top:50%; left:32px; transform:translateY(-50%); display:flex; align-items:center; gap:8px;
+    color:var(--muted); font-size:11px; letter-spacing:0.14em;
+  }
+  .kaizen-mark img{ height:24px; width:auto; display:block; }
+  .kaizen-mark .dot{ width:7px; height:7px; background:var(--red); border-radius:50%; }
+  .brand-slot{ position:absolute; top:50%; right:32px; transform:translateY(-50%); display:flex; align-items:center; }
+  .company-logo{ max-height:36px; max-width:180px; object-fit:contain; display:none; }
+  .eyebrow{ font-size:12px; color:var(--muted); letter-spacing:0.28em; margin-bottom:7px; font-weight:500; }
+  h1.company{ font-size:clamp(28px, 4vw, 44px); margin:0; font-weight:600; line-height:1.05; letter-spacing:-0.01em; }
+  .subline{ margin-top:9px; font-size:12.5px; color:var(--muted); letter-spacing:0.1em; }
+  .data-banner{
+    display:none; max-width:1440px; margin:14px auto 0; padding:8px 16px; border:1px solid var(--amber);
+    background:var(--amber-dim); color:var(--amber); font-size:11.5px; border-radius:3px; text-align:center;
+  }
+  .portal-footer{ max-width:1440px; margin:0 auto; padding:6px 24px 30px; text-align:center; }
+  .backend-link{
+    display:inline-flex; align-items:center; gap:8px; vertical-align:middle; margin-right:8px;
+    font-size:11px; color:var(--muted); text-decoration:none;
+    border:1px solid var(--line); border-radius:20px; padding:7px 16px;
+    font-family:'IBM Plex Mono', monospace; letter-spacing:0.03em;
+    transition:color .15s, border-color .15s;
+  }
+  .backend-link:hover{ color:var(--ink); border-color:var(--muted); }
+  .backend-link .dot{ width:6px; height:6px; border-radius:50%; background:var(--green); flex-shrink:0; }
+  .settings-toggle{
+    margin-left:8px; background:var(--panel-alt); border:1px solid var(--line); color:var(--muted);
+    width:30px; height:30px; border-radius:20px; cursor:pointer; font-size:13px; vertical-align:middle;
+  }
+  .settings-toggle:hover{ color:var(--ink); border-color:var(--muted); }
+  .settings-toggle.lang-toggle{ width:auto; padding:0 10px; font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:600; letter-spacing:0; display:inline-flex; align-items:center; justify-content:center; }
+  .settings-panel{
+    display:none; max-width:440px; margin:14px auto 0; padding:14px 16px; background:var(--panel);
+    border:1px solid var(--line); border-radius:3px; text-align:left;
+  }
+  .settings-panel.open{ display:block; }
+  .settings-panel label{ font-size:10.5px; color:var(--muted); letter-spacing:0.05em; text-transform:uppercase; }
+  .settings-row{ display:flex; gap:6px; margin-top:6px; }
+  .settings-row input{
+    flex:1; min-width:0; background:var(--panel-alt); border:1px solid var(--line); border-radius:2px;
+    color:var(--ink); font-family:'IBM Plex Mono', monospace; font-size:11px; padding:8px 9px;
+  }
+  .settings-row input::placeholder{ color:var(--muted); }
+  .settings-row button{
+    flex-shrink:0; background:var(--red); color:#fff; border:none; border-radius:2px;
+    font-size:11.5px; font-weight:600; padding:0 16px; cursor:pointer;
+  }
+  .settings-row button:hover{ opacity:.9; }
+  .settings-note{ font-size:10px; color:var(--muted); margin-top:8px; line-height:1.5; }
+
+  .layout{ display:flex; align-items:stretch; gap:20px; padding:24px 24px 0; max-width:1440px; margin:0 auto; }
+  aside.sidebar{ width:340px; flex:0 0 340px; display:flex; flex-direction:column; gap:18px; }
+  .grow-card{ flex:1; display:flex; flex-direction:column; }
+  .grow-card .card-body{ flex:1; }
+  main.content{ flex:1; min-width:0; display:flex; flex-direction:column; gap:18px; }
+  .content-row{ display:flex; gap:18px; }
+  .content-row.roadmap-row > .roadmap-card{ flex:2.4; min-width:0; }
+  .content-row.roadmap-row > .upcoming-card{ flex:1; min-width:220px; }
+  .upcoming-item{ display:flex; gap:10px; align-items:flex-start; padding:8px 0; border-bottom:1px solid var(--line); }
+  .upcoming-item:last-child{ border-bottom:none; }
+  .upcoming-item .ud-block{
+    flex-shrink:0; width:38px; text-align:center; background:var(--panel-alt); border:1px solid var(--line); border-radius:2px; padding:3px 0;
+  }
+  .upcoming-item .ud-day{ font-family:\'Oswald\', sans-serif; font-size:14px; font-weight:600; line-height:1; color:var(--ink); }
+  .upcoming-item .ud-mon{ font-size:8px; letter-spacing:0.06em; color:var(--muted); }
+  .upcoming-item .ud-desc{ font-size:11.5px; color:var(--ink); line-height:1.35; padding-top:2px; }
+  .content-row > .card{ flex:1; min-width:0; }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:4px; overflow:hidden; box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 3px 10px rgba(0,0,0,0.22); }
+  .card-head{ display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-bottom:1px solid var(--line); background:var(--panel-alt); }
+  .card-head .title{ font-size:13px; font-weight:600; letter-spacing:0.1em; }
+  .card-body{ padding:14px 16px 16px; }
+
+  .team-cols{ display:flex; gap:14px; }
+  .team-col{ flex:1; min-width:0; }
+  .team-col h4{ margin:0 0 10px; font-size:10.5px; letter-spacing:0.12em; color:var(--muted); text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+  .team-col h4 .sw{ width:8px; height:8px; border-radius:50%; }
+  .sw.kz{ background:var(--red); }
+  .sw.cl{ background:var(--blue); }
+  .person{ display:flex; align-items:center; gap:9px; padding:6px 0; }
+  .avatar{
+    width:30px; height:30px; border-radius:50%; background:var(--panel-alt); border:1px solid var(--line);
+    display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:var(--ink);
+    flex-shrink:0; background-size:cover; background-position:center;
+  }
+  .person .name{ font-size:12.5px; line-height:1.2; }
+  .person .role{ font-size:10.5px; color:var(--muted); }
+
+  .visit-date{ display:flex; align-items:center; gap:14px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed var(--line); }
+  .date-block{
+    background:var(--blue-dim); border:1px solid var(--blue); color:var(--blue); border-radius:2px;
+    width:56px; height:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .date-block .day{ font-family:'Oswald', sans-serif; font-size:22px; font-weight:600; line-height:1; }
+  .date-block .mon{ font-size:9.5px; letter-spacing:0.1em; margin-top:2px; }
+  .visit-meta .rel{ font-size:12.5px; color:var(--ink); font-weight:600; }
+  .visit-meta .team{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .visit-team-row{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:12px; padding-bottom:12px; border-bottom:1px dashed var(--line); }
+  .visit-person{ display:flex; align-items:center; gap:6px; }
+  .visit-person span{ font-size:11px; color:var(--ink); }
+  .avatar-sm{ width:22px; height:22px; font-size:9px; }
+  .agenda-item{ display:flex; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:12px; }
+  .agenda-item .time{ font-family:'IBM Plex Mono', monospace; color:var(--muted); flex-shrink:0; white-space:nowrap; }
+  .agenda-item:last-child{ border-bottom:none; }
+  .agenda-item .what{ flex:1; }
+
+  .ticket{
+    position:relative; display:flex; align-items:center; gap:10px; background:var(--panel-alt);
+    border:1px solid var(--line); border-radius:2px; padding:9px 10px 9px 14px; margin-bottom:8px;
+  }
+  .ticket:last-child{ margin-bottom:0; }
+  .ticket::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:6px;
+    background-image: radial-gradient(circle, var(--bg-deep) 2.2px, transparent 2.2px);
+    background-size: 6px 9px; background-position: 0 4px;
+  }
+  .ticket .prog{ font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--muted); flex-shrink:0; width:34px; }
+  .ticket .info{ flex:1; min-width:0; }
+  .ticket .owner{ font-size:12.5px; font-weight:500; }
+  .ticket .deadline{ font-size:10.5px; color:var(--muted); margin-top:1px; }
+  .ticket.overdue{ background:var(--red-dim); border-color:var(--red); }
+  .ticket .deadline.overdue{ color:var(--red); font-weight:600; }
+  .status-pill{ font-size:9.5px; letter-spacing:0.06em; text-transform:uppercase; padding:4px 8px; border-radius:20px; flex-shrink:0; white-space:nowrap; }
+  .status-pill.todo{ background:var(--panel); color:var(--muted); border:1px solid var(--line); }
+  .status-pill.progress{ background:var(--amber-dim); color:var(--amber); border:1px solid var(--amber); }
+  .status-pill.done{ background:var(--green-dim); color:var(--green); border:1px solid var(--green); }
+  .status-pill.late{ background:var(--red-dim); color:var(--red); border:1px solid var(--red); }
+  .status-pill.check{ background:var(--blue-dim); color:var(--blue); border:1px solid var(--blue); }
+
+  .roadmap-track{ display:flex; align-items:flex-start; overflow-x:auto; padding:26px 10px 10px; gap:0; }
+  .roadmap-node{ position:relative; display:flex; flex-direction:column; align-items:center; min-width:118px; flex-shrink:0; }
+  .roadmap-node:not(:first-child)::before{ content:""; position:absolute; top:19px; right:50%; width:100%; height:2px; background:var(--line); z-index:0; }
+  .rm-shape{
+    position:relative; z-index:1; width:38px; height:38px; display:flex; align-items:center; justify-content:center;
+    background:var(--bg-deep); border:2px solid var(--line); color:var(--muted); flex-shrink:0;
+  }
+  .rm-shape.circle{ border-radius:50%; }
+  .rm-shape.diamond{ width:30px; height:30px; transform:rotate(45deg); margin:4px 0; }
+  .rm-shape .rm-icon{ transform:none; font-size:13px; font-family:'IBM Plex Mono',monospace; }
+  .rm-shape.diamond .rm-icon{ transform:rotate(-45deg); }
+  .roadmap-node.done .rm-shape{ background:var(--green-dim); border-color:var(--green); color:var(--green); }
+  .roadmap-node.progress .rm-shape{ background:var(--amber-dim); border-color:var(--amber); color:var(--amber); box-shadow:0 0 0 4px var(--amber-dim); }
+  .roadmap-node.check .rm-shape{ background:var(--blue-dim); border-color:var(--blue); color:var(--blue); }
+  .roadmap-node.todo .rm-shape{ border-style:dashed; }
+  .rm-label{ margin-top:8px; font-size:11px; text-align:center; max-width:110px; line-height:1.25; }
+  .rm-date{ margin-top:2px; font-size:9.5px; color:var(--muted); }
+
+  .ap-wrap{ overflow-x:auto; padding-bottom:4px; border:1px solid var(--line); border-radius:4px; }
+  .ap-grid{ display:grid; font-size:10.5px; align-items:stretch; width:100%; min-width:max-content; }
+  .ap-yearband{ font-family:'IBM Plex Mono', monospace; font-size:9px; font-weight:700; letter-spacing:0.08em;
+    color:var(--red); background:var(--red-dim); text-align:center; padding:4px 0; }
+  .ap-yearband.spacer{ background:var(--panel); }
+  .ap-headcell{ font-size:9.5px; color:var(--muted); font-weight:600; padding:8px 3px; text-align:center;
+    white-space:nowrap; line-height:1.3; background:var(--panel); position:sticky; top:0; z-index:2;
+    box-shadow: inset 0 -1px 0 var(--line); }
+  .ap-headcell.month{ box-shadow: inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line); }
+  .ap-headcell.resp, .ap-headcell.status{ box-shadow: inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line); }
+  .ap-headcell.today{ color:var(--red); }
+  .ap-headcell.label{ text-align:left; color:var(--ink); left:0; z-index:4; box-shadow: inset 0 -1px 0 var(--line), 2px 0 0 var(--line); padding-left:12px; }
+  .ap-cell{ padding:6px 3px; display:flex; align-items:center; min-height:32px; background:var(--panel); box-shadow: inset 0 -1px 0 var(--line); }
+  .ap-cell.month{ box-shadow: inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line); }
+  .ap-cell.label{ font-size:11.5px; position:sticky; left:0; z-index:1; box-shadow: inset 0 -1px 0 var(--line), 2px 0 0 var(--line); padding-left:12px; }
+  .ap-cell.resp{ font-size:10.5px; color:var(--muted); justify-content:center; text-align:center; box-shadow: inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line); }
+  .ap-cell.status{ justify-content:center; box-shadow: inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line); }
+  .ap-row-end{ grid-column:1/-1; height:1px; background:var(--line); }
+  .ap-month{ width:100%; height:20px; }
+  .ap-month.run-start{ border-top-left-radius:4px; border-bottom-left-radius:4px; }
+  .ap-month.run-end{ border-top-right-radius:4px; border-bottom-right-radius:4px; }
+  .ap-month.todo{ background:var(--line); }
+  .ap-month.progress{ background:var(--amber); }
+  .ap-month.done{ background:var(--green); }
+  .ap-month.late{ background:var(--red); }
+  .ap-empty{ color:var(--muted); font-size:12px; }
+
+  .report-date{ font-size:11px; color:var(--muted); margin-bottom:6px; font-family:'IBM Plex Mono',monospace; }
+  .report-title{ font-size:14px; font-weight:600; margin-bottom:8px; }
+  .report-text{ font-size:12.5px; color:var(--ink); line-height:1.55; }
+  .report-author{ margin-top:10px; font-size:10.5px; color:var(--muted); }
+
+  .bowling-card{ display:flex; flex-direction:column; gap:10px; align-items:flex-start; }
+  .bowling-visual{ display:flex; gap:4px; align-items:flex-end; height:46px; }
+  .bowling-visual span{ width:8px; border-radius:1px; }
+  .bowling-visual span:nth-child(1){ height:60%; background:var(--green); }
+  .bowling-visual span:nth-child(2){ height:85%; background:var(--green); }
+  .bowling-visual span:nth-child(3){ height:40%; background:var(--amber); }
+  .bowling-visual span:nth-child(4){ height:70%; background:var(--green); }
+  .bowling-visual span:nth-child(5){ height:25%; background:var(--red); }
+  .bowling-visual span:nth-child(6){ height:55%; background:var(--amber); }
+  .btn{ display:inline-flex; align-items:center; gap:8px; background:var(--red); color:#fff; font-size:11.5px; font-weight:600; letter-spacing:0.04em; padding:9px 14px; border-radius:2px; text-decoration:none; }
+  .btn .arrow{ transition:transform .15s; }
+  .btn:hover .arrow{ transform:translateX(3px); }
+  .bowling-note{ font-size:11px; color:var(--muted); }
+
+  @media (max-width: 1000px){ .content-row{ flex-direction:column; } .bottom-grid{ grid-template-columns:1fr; } }
+
+  .bottom-grid{ max-width:1440px; margin:18px auto 0; padding:0 24px 32px; display:grid; grid-template-columns:1fr 1fr 1fr; gap:18px; }
+  .link-group{ margin-bottom:16px; }
+  .link-group:last-child{ margin-bottom:0; }
+  .link-group-head{
+    font-size:10.5px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted);
+    margin-bottom:6px; padding-bottom:6px; border-bottom:1px solid var(--line);
+  }
+  .file-link{
+    display:flex; align-items:center; gap:8px; font-size:12px; padding:7px 0;
+    border-bottom:1px solid var(--line); text-decoration:none; color:var(--ink);
+  }
+  .file-link:last-child{ border-bottom:none; }
+  .file-link .dot{ width:6px; height:6px; border-radius:50%; background:var(--green); flex-shrink:0; }
+  .file-link .fname{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .file-link .fdate{ font-size:10px; color:var(--muted); flex-shrink:0; font-family:'IBM Plex Mono',monospace; }
+  .file-link:hover .fname{ color:var(--red); }
+
+  .photo-grid{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  .photo-tile{
+    position:relative; aspect-ratio:1; background:var(--panel-alt); border:1px solid var(--line); border-radius:2px;
+    display:flex; align-items:center; justify-content:center; color:var(--muted); text-decoration:none; overflow:hidden; font-size:20px;
+  }
+  .photo-tile .cap{
+    position:absolute; left:0; right:0; bottom:0; background:linear-gradient(0deg, rgba(0,0,0,.7), transparent);
+    color:var(--ink); font-size:9px; padding:4px 5px 3px; line-height:1.2;
+  }
+  @media (max-width: 880px){
+    .layout{ flex-direction:column; }
+    aside.sidebar{ width:100%; flex:1 1 auto; }
+    .kaizen-mark, .brand-slot{ position:static; margin-bottom:10px; }
+    .brand-slot{ align-items:center; }
+    header.masthead{ align-items:center; }
+  }
+
+  /* ==== BOWLING CHART (vista integrata) ==== */
+  #viewBowling{ display:none; }
+  .back-link{
+    position:absolute; top:20px; left:32px; display:flex; align-items:center; gap:6px;
+    color:var(--muted); font-size:11px; letter-spacing:0.06em; text-decoration:none;
+  }
+  .back-link:hover{ color:var(--ink); }
+  .kaizen-mark-right{ position:absolute; top:20px; right:32px; }
+  .kaizen-mark-right img{ height:20px; width:auto; display:block; }
+  .eyebrow{ font-size:12px; color:var(--muted); letter-spacing:0.22em; margin-bottom:6px; }
+  h1.company{ font-size:clamp(24px,3.4vw,36px); margin:0; font-weight:600; line-height:1.05; }
+  .subline{ margin-top:8px; font-size:12.5px; color:var(--muted); letter-spacing:0.08em; }
+
+  .data-banner{
+    display:none; max-width:1200px; margin:14px auto 0; padding:8px 16px; border:1px solid var(--amber);
+    background:var(--amber-dim); color:var(--amber); font-size:11.5px; border-radius:3px; text-align:center;
+  }
+
+  .wrap{ max-width:1200px; margin:0 auto; padding:24px 24px 60px; display:flex; flex-direction:column; gap:16px; }
+
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:4px; overflow:hidden; box-shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 3px 10px rgba(0,0,0,0.22); }
+  .card-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:14px 18px; border-bottom:1px solid var(--line); background:var(--panel-alt); }
+  .card-head .kpi-name{ font-size:14px; font-weight:600; line-height:1.35; }
+  .card-head .kpi-resp{ font-size:11px; color:var(--muted); margin-top:4px; }
+  .kpi-stats{ display:flex; gap:14px; flex-shrink:0; text-align:right; }
+  .kpi-stat{ display:flex; flex-direction:column; }
+  .kpi-stat .lbl{ font-size:9px; letter-spacing:0.08em; text-transform:uppercase; color:var(--muted); }
+  .kpi-stat .val{ font-size:14px; font-weight:600; font-family:'IBM Plex Mono', monospace; }
+  .kpi-stat.target .val{ color:var(--green); }
+  .kpi-stat.baseline .val{ color:var(--amber); }
+
+  .card-body{ padding:14px 18px 18px; }
+  .chart-wrap{ width:100%; }
+  .chart-wrap svg{ width:100%; height:150px; display:block; overflow:visible; }
+  .legend{ display:flex; gap:16px; margin-top:8px; flex-wrap:wrap; }
+  .legend-item{ display:flex; align-items:center; gap:6px; font-size:10.5px; color:var(--muted); }
+  .legend-swatch{ width:14px; height:3px; border-radius:2px; flex-shrink:0; }
+
+  .empty-state{ text-align:center; padding:80px 20px; color:var(--muted); }
+  .empty-state .big{ font-size:14px; color:var(--ink); margin-bottom:8px; }
+
+  .settings-toggle{
+    margin-left:8px; background:var(--panel-alt); border:1px solid var(--line); color:var(--muted);
+    width:28px; height:28px; border-radius:20px; cursor:pointer; font-size:12px; vertical-align:middle;
+  }
+  .settings-toggle:hover{ color:var(--ink); border-color:var(--muted); }
+  .footer-bar{ text-align:center; padding:10px 24px 6px; }
+
+  @media (max-width: 640px){
+    .card-head{ flex-direction:column; }
+    .kpi-stats{ text-align:left; }
+  }
+
+</style>
+</head>
+<body>
+
+<div id="viewPortal">
+<header class="masthead">
+  <div class="kaizen-mark"><img id="kaizenLogo" src="https://kaizen.com/wp-content/uploads/2022/04/kaizen-logo-white.png" alt="Kaizen Institute"></div>
+  <div class="brand-slot">
+    <img class="company-logo" id="companyLogo" alt="Logo azienda">
+  </div>
+  <div class="eyebrow">Kaizen Portal</div>
+  <h1 class="company display" id="companyName">Nome Azienda Cliente</h1>
+  <div class="subline">1% better every day</div>
+</header>
+
+<div class="data-banner" id="dataBanner"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="card">
+      <div class="card-head"><span class="title display" data-i18n="team_title">Team di progetto</span></div>
+      <div class="card-body">
+        <div class="team-cols">
+          <div class="team-col"><h4><span class="sw kz"></span><span data-i18n="team_kaizen">Kaizen Institute</span></h4><div id="teamKaizen"></div></div>
+          <div class="team-col"><h4><span class="sw cl"></span><span data-i18n="team_client">Cliente</span></h4><div id="teamCliente"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="title display" data-i18n="visit_title">Prossima visita</span></div>
+      <div class="card-body" id="visitBody"></div>
+    </div>
+
+    <div class="card grow-card">
+      <div class="card-head"><span class="title display" data-i18n="homework_title">Attività per il prossimo incontro</span></div>
+      <div class="card-body" id="homeworkBody"></div>
+    </div>
+  </aside>
+
+  <main class="content">
+    <div class="content-row roadmap-row">
+      <div class="card roadmap-card">
+        <div class="card-head"><span class="title display" data-i18n="roadmap_title">Roadmap di progetto</span></div>
+        <div class="card-body"><div class="roadmap-track" id="roadmapTrack"></div></div>
+      </div>
+      <div class="card upcoming-card">
+        <div class="card-head"><span class="title display" data-i18n="upcoming_title">Prossimi incontri</span></div>
+        <div class="card-body" id="upcomingBody"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="title display">Action plan</span></div>
+      <div class="card-body" id="actionPlanBody"></div>
+    </div>
+
+    <div class="content-row">
+      <div class="card">
+        <div class="card-head"><span class="title display" data-i18n="reportgiorno_title">Report ultima giornata</span></div>
+        <div class="card-body" id="reportGiornoBody"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="title display" data-i18n="bowling_title">Bowling chart</span></div>
+        <div class="card-body bowling-card">
+          <div class="bowling-visual"><span></span><span></span><span></span><span></span><span></span><span></span></div>
+          <div class="bowling-note" data-i18n="bowling_note">Avanzamento KPI di progetto rispetto a target e baseline.</div>
+          <a class="btn" id="bowlingLink" href="#" onclick="showView('bowling'); return false;"><span data-i18n="bowling_btn">Apri Bowling Chart</span> <span class="arrow">→</span></a>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="bottom-grid">
+  <div class="card">
+    <div class="card-head"><span class="title display" data-i18n="materiali_title">Materiali</span></div>
+    <div class="card-body" id="materialiBody"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="title display" data-i18n="report_title">Report</span></div>
+    <div class="card-body" id="reportBody"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><span class="title display" data-i18n="foto_title">Foto</span></div>
+    <div class="card-body" id="fotoBody"></div>
+  </div>
+</div>
+
+<footer class="portal-footer">
+  <a class="backend-link" id="backendLink" href="#" target="_blank" rel="noopener" style="display:none;">
+    <span class="dot"></span> <span data-i18n="backend_btn">Modifica dati progetto</span>
+  </a>
+  <button class="settings-toggle" id="themeToggle" onclick="toggleTheme()" title="Cambia tema chiaro/scuro">🌙</button>
+  <button class="settings-toggle lang-toggle" id="langToggle" onclick="toggleLang()" title="Switch language / Cambia lingua">IT</button>
+  <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()" title="Configura link Dropbox">⚙</button>
+
+  <div class="settings-panel" id="settingsPanel">
+    <label for="dropboxUrlInput" data-i18n="settings_label">Link Dropbox del file di backend (.xlsx)</label>
+    <div class="settings-row">
+      <input type="url" id="dropboxUrlInput" placeholder="https://www.dropbox.com/scl/fi/...&dl=0">
+      <button onclick="saveDropboxUrl()" data-i18n="settings_save">Salva</button>
+    </div>
+    <div class="settings-note" data-i18n="settings_note">Salvato solo in questo browser (non condiviso con chi apre il portale altrove). Deve avere il permesso "Chiunque abbia il link può visualizzare".</div>
+  </div>
+</footer>
+</div>
+
+<div id="viewBowling">
+<header class="masthead">
+  <a class="back-link" href="#" onclick="showView('portal'); return false;">&larr; <span data-i18n="back_link">Torna al Kaizen Portal</span></a>
+  <div class="kaizen-mark-right"><img id="kaizenLogoBowling" src="https://kaizen.com/wp-content/uploads/2022/04/kaizen-logo-white.png" alt="Kaizen Institute"></div>
+  <div class="eyebrow">Kaizen Portal</div>
+  <h1 class="company display" id="companyNameBowling">Nome Azienda Cliente</h1>
+  <div class="subline">Bowling Chart</div>
+</header>
+
+<div class="data-banner" id="dataBannerBowling"></div>
+
+<div class="wrap" id="bowlingWrap"></div>
+</div>
+
+
+<script>
+/* =========================================================================
+   CONFIGURAZIONE
+   dropboxFileUrl: incollare qui il link di CONDIVISIONE (non l'API, non
+   una password) al file .xlsx, con permesso "chiunque abbia il link può
+   visualizzare". Nessuna app key / secret / token va MAI messa qui: questo
+   file gira nel browser del cliente ed è totalmente visibile.
+   ========================================================================= */
+const CONFIG = {
+  dropboxFileUrl: "https://www.dropbox.com/scl/fi/y4t030knlx2ni7w8ol3m1/kaizen_portal_backend_WINE.xlsx?rlkey=ew41kw8f8ht8yakfn5les9cu5&dl=0", // <- INCOLLARE QUI il link Dropbox del backend Excel di QUESTO cliente
+  bowlingChartUrlFallback: "bowling_chart.html"
+};
+
+const DROPBOX_URL_KEY = "kaizenPortal_dropboxUrl_" + location.pathname; // chiave specifica per pagina, evita che client diversi si sovrascrivano
+function getActiveDropboxUrl(){
+  return localStorage.getItem(DROPBOX_URL_KEY) || CONFIG.dropboxFileUrl;
+}
+function toggleSettings(){
+  const panel = document.getElementById("settingsPanel");
+  panel.classList.toggle("open");
+  if(panel.classList.contains("open")){
+    document.getElementById("dropboxUrlInput").value = getActiveDropboxUrl();
+  }
+}
+function saveDropboxUrl(){
+  const val = document.getElementById("dropboxUrlInput").value.trim();
+  if(val){ localStorage.setItem(DROPBOX_URL_KEY, val); }
+  else { localStorage.removeItem(DROPBOX_URL_KEY); }
+  location.reload();
+}
+
+function showView(name){
+  document.getElementById("viewPortal").style.display = name === "portal" ? "block" : "none";
+  document.getElementById("viewBowling").style.display = name === "bowling" ? "block" : "none";
+  window.scrollTo(0, 0);
+}
+
+const THEME_KEY = "kaizenPortal_theme";
+const KAIZEN_LOGO = { dark: "https://kaizen.com/wp-content/uploads/2022/04/kaizen-logo-white.png", light: "https://kaizen.com/wp-content/uploads/2022/04/logo.png" };
+function applyTheme(theme){
+  document.documentElement.setAttribute("data-theme", theme);
+  document.getElementById("themeToggle").textContent = theme === "light" ? "☀️" : "🌙";
+  const logo = document.getElementById("kaizenLogo");
+  if(logo) logo.src = KAIZEN_LOGO[theme] || KAIZEN_LOGO.dark;
+  const logoB = document.getElementById("kaizenLogoBowling");
+  if(logoB) logoB.src = KAIZEN_LOGO[theme] || KAIZEN_LOGO.dark;
+}
+function toggleTheme(){
+  const current = document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  const next = current === "light" ? "dark" : "light";
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+
+const LANG_KEY = "kaizenPortal_lang";
+const MESI_BY_LANG = {
+  it: ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"],
+  en: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+};
+const GIORNI_BY_LANG = {
+  it: ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"],
+  en: ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]
+};
+const STATUS_LABELS_EN = { "Da iniziare": "To start", "In corso": "In progress", "Completato": "Completed", "In ritardo": "Delayed" };
+
+const I18N = {
+  it: {
+    team_title: "Team di progetto", team_kaizen: "Kaizen Institute", team_client: "Cliente",
+    visit_title: "Prossima visita", homework_title: "Attività per il prossimo incontro",
+    roadmap_title: "Roadmap di progetto", upcoming_title: "Prossimi incontri",
+    reportgiorno_title: "Report ultima giornata", bowling_title: "Bowling chart",
+    bowling_note: "Avanzamento KPI di progetto rispetto a target e baseline.", bowling_btn: "Apri Bowling Chart",
+    materiali_title: "Materiali", report_title: "Report", foto_title: "Foto",
+    settings_label: "Link Dropbox del file di backend (.xlsx)", settings_save: "Salva",
+    settings_note: "Salvato solo in questo browser (non condiviso con chi apre il portale altrove). Deve avere il permesso \"Chiunque abbia il link può visualizzare\".",
+    backend_btn: "Modifica dati progetto", back_link: "Torna al Kaizen Portal",
+    empty_team: "Nessuno", empty_visit: "Nessuna visita pianificata.", empty_homework: "Nessuna attività assegnata.",
+    empty_roadmap: "Roadmap non ancora definita.", empty_upcoming: "Nessun incontro in calendario.",
+    empty_actionplan: "Nessuna azione inserita nel piano.", empty_report_giorno: "Nessun report disponibile.",
+    empty_link_generic: "Nessun elemento caricato.", empty_foto: "Nessuna foto caricata.",
+    empty_bowling_title: "Nessun KPI ancora impostato",
+    empty_bowling_sub: "Compila il foglio \"Bowling Chart\" nell'Excel di backend per vederli qui.",
+    deadline_prefix: "scad.", author_prefix: "A cura di", group_general: "Generale",
+    col_action: "Azione", col_resp: "Responsabile", col_status: "Status", col_impact: "Impact (€/Y)",
+    banner_error: (msg) => `Dati di esempio: non è stato possibile leggere il file da Dropbox (${msg}). Verifica il link e i permessi di condivisione (pulsante ⚙ in fondo alla pagina).`,
+    banner_noconfig: `Dati di esempio: nessun link Dropbox configurato. Usa il pulsante ⚙ in fondo alla pagina per impostarlo.`
+  },
+  en: {
+    team_title: "Project team", team_kaizen: "Kaizen Institute", team_client: "Client",
+    visit_title: "Next visit", homework_title: "Actions for the next meeting",
+    roadmap_title: "Project roadmap", upcoming_title: "Upcoming meetings",
+    reportgiorno_title: "Latest daily report", bowling_title: "Bowling chart",
+    bowling_note: "Project KPI progress against target and baseline.", bowling_btn: "Open Bowling Chart",
+    materiali_title: "Materials", report_title: "Reports", foto_title: "Photos",
+    settings_label: "Dropbox link to the backend file (.xlsx)", settings_save: "Save",
+    settings_note: "Saved only in this browser (not shared with others opening the portal elsewhere). Must have \"Anyone with the link can view\" permission.",
+    backend_btn: "Edit project data", back_link: "Back to Kaizen Portal",
+    empty_team: "None", empty_visit: "No visit scheduled.", empty_homework: "No actions assigned.",
+    empty_roadmap: "Roadmap not yet defined.", empty_upcoming: "No meetings scheduled.",
+    empty_actionplan: "No actions added to the plan yet.", empty_report_giorno: "No report available.",
+    empty_link_generic: "No items uploaded.", empty_foto: "No photos uploaded.",
+    empty_bowling_title: "No KPIs set yet",
+    empty_bowling_sub: "Fill in the \"Bowling Chart\" sheet in the backend Excel to see them here.",
+    deadline_prefix: "due", author_prefix: "By", group_general: "General",
+    col_action: "Action", col_resp: "Owner", col_status: "Status", col_impact: "Impact (€/Y)",
+    banner_error: (msg) => `Sample data: could not read the file from Dropbox (${msg}). Check the link and sharing permissions (⚙ button at the bottom of the page).`,
+    banner_noconfig: `Sample data: no Dropbox link configured. Use the ⚙ button at the bottom of the page to set it.`
+  }
+};
+let LANG = localStorage.getItem(LANG_KEY) || "it";
+let ITA_MESI = MESI_BY_LANG[LANG];
+let GIORNI = GIORNI_BY_LANG[LANG];
+let LAST_DATA = null, LAST_FALLBACK = true, LAST_ERR = "";
+function t(key){ return I18N[LANG][key]; }
+function statusLabel(stato){ return LANG === "en" ? (STATUS_LABELS_EN[String(stato||"").trim()] || stato) : stato; }
+function applyLang(lang){
+  LANG = lang;
+  ITA_MESI = MESI_BY_LANG[lang];
+  GIORNI = GIORNI_BY_LANG[lang];
+  localStorage.setItem(LANG_KEY, lang);
+  document.getElementById("langToggle").textContent = lang.toUpperCase();
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if(I18N[lang][key] !== undefined) el.textContent = I18N[lang][key];
+  });
+  if(typeof LAST_DATA !== "undefined" && LAST_DATA){ renderAll(LAST_DATA); applyBanner(LAST_FALLBACK, LAST_ERR); }
+}
+function toggleLang(){ applyLang(LANG === "it" ? "en" : "it"); }
+applyLang(LANG);
+
+const PROXY_URL = "https://kaizenportal.federicomaurizzi.workers.dev/";
+
+async function loadWorkbookFromDropbox(url){
+  if(!url) throw new Error("Nessun link Dropbox configurato");
+  const proxied = PROXY_URL + "?url=" + encodeURIComponent(url);
+  const res = await fetch(proxied);
+  if(!res.ok) throw new Error("Download Dropbox fallito (HTTP " + res.status + ")");
+  const buf = await res.arrayBuffer();
+  return XLSX.read(buf, { type: "array", cellDates: true });
+}
+
+const SHEET_ALIASES = {
+  "Agende": ["Agende", "Schedule"],
+  "Calendario": ["Calendario", "Calendar"],
+  "ReportGiornaliero": ["ReportGiornaliero", "DailyReport"],
+  "Materiali": ["Materiali", "Materials"],
+  "Foto": ["Foto", "Photos"]
+};
+function sheetAOA(wb, name){
+  const candidates = SHEET_ALIASES[name] || [name];
+  let ws = null;
+  for(const cand of candidates){ if(wb.Sheets[cand]){ ws = wb.Sheets[cand]; break; } }
+  if(!ws) return [];
+  return XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", blankrows: false, UTC: true });
+}
+function toIsoDate(v){
+  if(v instanceof Date) return v.toISOString().slice(0,10);
+  if(typeof v === "string") return v.slice(0,10);
+  return "";
+}
+function toIsoDateTime(v){
+  if(v instanceof Date){
+    const p = n => String(n).padStart(2,"0");
+    return `${v.getUTCFullYear()}-${p(v.getUTCMonth()+1)}-${p(v.getUTCDate())}T${p(v.getUTCHours())}:${p(v.getUTCMinutes())}`;
+  }
+  if(typeof v === "string") return v.replace(" ", "T").slice(0,16);
+  return "";
+}
+
+const CONFIG_KEY_ALIASES = {
+  "Nome Azienda": "Nome Azienda", "Company Name": "Nome Azienda",
+  "Logo Azienda": "Logo Azienda", "Company Logo": "Logo Azienda",
+  "Fase progetto corrente": "Fase progetto corrente", "Current Project Phase": "Fase progetto corrente",
+  "Link file Backend (Excel)": "Link file Backend (Excel)", "Backend File Link (Excel)": "Link file Backend (Excel)"
+};
+function parseConfig(wb){
+  const rows = sheetAOA(wb, "Config").slice(1);
+  const map = {};
+  rows.forEach(r => {
+    if(r[0]){
+      const raw = String(r[0]).trim();
+      const key = CONFIG_KEY_ALIASES[raw] || raw;
+      map[key] = r[1];
+    }
+  });
+  return map;
+}
+function parseTeam(wb){
+  return sheetAOA(wb, "Team").slice(1).filter(r => r[0])
+    .map(r => ({ nome: r[0], ruolo: r[1], lato: r[2], foto: r[3] || "" }));
+}
+function toHHMM(v){
+  if(v instanceof Date){
+    const p = n => String(n).padStart(2,"0");
+    return `${p(v.getUTCHours())}:${p(v.getUTCMinutes())}`;
+  }
+  if(typeof v === "number"){
+    const totalMin = Math.round(v * 24 * 60);
+    const p = n => String(n).padStart(2,"0");
+    return `${p(Math.floor(totalMin/60))}:${p(totalMin%60)}`;
+  }
+  if(typeof v === "string"){
+    const m = v.trim().match(/^(\d{1,2}):(\d{2})/);
+    if(m) return `${m[1].padStart(2,"0")}:${m[2]}`;
+  }
+  return "00:00";
+}
+function parseAgende(wb){
+  return sheetAOA(wb, "Agende").slice(1).filter(r => r[0] && r[2])
+    .map(r => {
+      const data = toIsoDate(r[0]);
+      const oraRaw = r[1];
+      const ora = (oraRaw instanceof Date || typeof oraRaw === "number") ? toHHMM(oraRaw) : String(oraRaw || "").trim();
+      const oraSort = toHHMM(oraRaw);
+      return { cosa: r[2], chi: r[3], ora, quando: data ? `${data}T${oraSort}` : "" };
+    }).filter(a => a.quando);
+}
+function parseCalendario(wb){
+  return sheetAOA(wb, "Calendario").slice(1).filter(r => r[0])
+    .map(r => ({ data: toIsoDate(r[0]), descrizione: r[1] || "" }))
+    .filter(c => /^\d{4}-\d{2}-\d{2}$/.test(c.data))
+    .sort((a,b) => new Date(a.data) - new Date(b.data));
+}
+function parseHomework(wb){
+  return sheetAOA(wb, "Homework").slice(1).filter(r => r[1])
+    .map(r => ({ progressivo: r[0], azione: r[1], owner: r[2], deadline: toIsoDate(r[3]), stato: r[4] }));
+}
+function parseRoadmap(wb){
+  return sheetAOA(wb, "Roadmap").slice(1).filter(r => r[2])
+    .map(r => ({ progressivo: r[0], tipo: r[1], etichetta: r[2], data: toIsoDate(r[3]), stato: r[4] }));
+}
+function parseReportGiorno(wb){
+  return sheetAOA(wb, "ReportGiornaliero").slice(1).filter(r => r[1])
+    .map(r => ({ data: toIsoDate(r[0]), titolo: r[1], sintesi: r[2], autore: r[3] }));
+}
+function parseLinkSheet(wb, name){
+  return sheetAOA(wb, name).slice(1).filter(r => r[0])
+    .map(r => ({ nome: r[0], gruppo: r[1] || "", link: r[2] || "", data: toIsoDate(r[3]) }));
+}
+function parseActionPlan(wb){
+  const rows = sheetAOA(wb, "ActionPlan");
+  if(rows.length < 2) return { monthCols: [], actions: [] };
+  const header = rows[0];
+  const dataRows = rows.slice(1);
+  const monthCols = [];
+  for(let c = 2; c < header.length - 2; c++){
+    if(header[c] instanceof Date) monthCols.push({ idx: c, date: header[c] });
+  }
+  const statusIdx = header.length - 2;
+  const impactIdx = header.length - 1;
+  const actions = dataRows.filter(r => r[0]).map(r => ({
+    azione: r[0], responsabile: r[1], stato: r[statusIdx], impact: r[impactIdx],
+    months: monthCols.map(mc => ({ date: mc.date, active: String(r[mc.idx] || "").trim().toUpperCase() === "X" }))
+  }));
+  return { monthCols, actions };
+}
+
+function buildDemoMonths(activeIdx, count){
+  const months = [];
+  for(let i = 0; i < count; i++){ months.push({ date: new Date(2026, i, 1), active: activeIdx.includes(i) }); }
+  return months;
+}
+const FALLBACK = {
+  config: { "Nome Azienda": "Nome Azienda Cliente", "Logo Azienda": "", "Fase progetto corrente": "Fase 1 / 3", "Link Bowling Chart": "bowling_chart.html", "Link cartella Dropbox progetto": "", "Link file Backend (Excel)": "" },
+  team: [
+    { nome: "Mario Rossi", ruolo: "Project Leader", lato: "Kaizen", foto: "" },
+    { nome: "Anna Bianchi", ruolo: "Consultant", lato: "Kaizen", foto: "" },
+    { nome: "Nome Cognome", ruolo: "Ruolo", lato: "Cliente", foto: "" }
+  ],
+  agenda: [ { cosa: "Esempio punto agenda", chi: "Mario Rossi, Nome Cognome", quando: "2026-07-14T09:00" } ],
+  calendario: [
+    { data: "2026-07-14", descrizione: "Esempio incontro" },
+    { data: "2026-08-01", descrizione: "Esempio incontro futuro" }
+  ],
+  homework: [
+    { progressivo: "001", azione: "Esempio azione da completare", owner: "Nome Cognome", deadline: "2026-07-18", stato: "Do" }
+  ],
+  roadmap: [
+    { progressivo: 1, tipo: "Workshop", etichetta: "Kick off", data: "2026-07-01", stato: "Act" },
+    { progressivo: 2, tipo: "Steerco", etichetta: "SteerCo 1", data: "2026-07-10", stato: "Plan" }
+  ],
+  actionPlan: {
+    monthCols: buildDemoMonths([], 12).map(m => ({ idx: 0, date: m.date })),
+    actions: [
+      { azione: "Esempio azione di progetto", responsabile: "Mario Rossi", stato: "In corso", impact: "", months: buildDemoMonths([0,1], 12) }
+    ]
+  },
+  reportGiorno: [
+    { data: "2026-07-08", titolo: "Esempio report di giornata",
+      sintesi: "Qui compare la sintesi dell'ultima giornata di cantiere, cosi' come compilata nel foglio ReportGiornaliero.",
+      autore: "Mario Rossi" }
+  ],
+  materiali: [
+    { nome: "Esempio materiale", gruppo: "Template", link: "#", data: "2026-06-28" }
+  ],
+  report: [
+    { nome: "Esempio report A3", gruppo: "Kick off", link: "#", data: "2026-07-08" }
+  ],
+  foto: [
+    { nome: "Esempio foto gemba", gruppo: "Kick off", link: "#", data: "2026-07-08" }
+  ]
+};
+
+function initials(name){ return String(name || "").split(" ").filter(Boolean).map(w => w[0]).slice(0,2).join("").toUpperCase(); }
+function fmtDDMM(iso){ if(!iso) return ""; const d = new Date(iso + "T00:00"); return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}`; }
+
+function renderTeam(team){
+  const kz = team.filter(p => p.lato === "Kaizen");
+  const cl = team.filter(p => p.lato === "Cliente" || p.lato === "Client");
+  const row = p => `
+    <div class="person">
+      <div class="avatar" style="${p.foto ? `background-image:url('${p.foto}')` : ""}">${p.foto ? "" : initials(p.nome)}</div>
+      <div><div class="name">${p.nome}</div><div class="role">${p.ruolo || ""}</div></div>
+    </div>`;
+  document.getElementById("teamKaizen").innerHTML = kz.map(row).join("") || `<div class="ap-empty">${t("empty_team")}</div>`;
+  document.getElementById("teamCliente").innerHTML = cl.map(row).join("") || `<div class="ap-empty">${t("empty_team")}</div>`;
+}
+
+function findTeamMember(team, name){
+  const n = String(name || "").trim().toLowerCase();
+  if(!n) return null;
+  return team.find(p => {
+    const pn = String(p.nome || "").trim().toLowerCase();
+    return pn === n || pn.includes(n) || n.includes(pn);
+  }) || null;
+}
+
+function renderVisit(agenda, team){
+  if(!agenda.length){ document.getElementById("visitBody").innerHTML = `<div class="ap-empty">${t("empty_visit")}</div>`; return; }
+  const sorted = [...agenda].sort((a,b) => new Date(a.quando) - new Date(b.quando));
+  const targetDay = sorted[0].quando.slice(0,10);
+  const dayItems = sorted.filter(a => a.quando.slice(0,10) === targetDay);
+  const d = new Date(targetDay + "T00:00");
+  const teamNames = [...new Set(dayItems.flatMap(a => String(a.chi).split(",").map(s => s.trim()).filter(Boolean)))];
+  const teamMatched = teamNames.map(n => findTeamMember(team, n) || { nome: n, foto: "" });
+
+  const header = `
+    <div class="visit-date">
+      <div class="date-block"><div class="day">${d.getDate()}</div><div class="mon">${ITA_MESI[d.getMonth()].toUpperCase()}</div></div>
+      <div class="visit-meta">
+        <div class="rel">${GIORNI[d.getDay()].charAt(0).toUpperCase() + GIORNI[d.getDay()].slice(1)}</div>
+      </div>
+    </div>
+    <div class="visit-team-row">
+      ${teamMatched.map(p => `
+        <div class="visit-person" title="${p.nome}">
+          <div class="avatar avatar-sm" style="${p.foto ? `background-image:url('${p.foto}')` : ""}">${p.foto ? "" : initials(p.nome)}</div>
+          <span>${p.nome}</span>
+        </div>`).join("")}
+    </div>`;
+  const items = dayItems.map(a => `
+    <div class="agenda-item">
+      <div class="time">${a.ora || ""}</div>
+      <div class="what">${a.cosa}</div>
+    </div>`).join("");
+  document.getElementById("visitBody").innerHTML = header + items;
+}
+
+function pdcaClass(stato){
+  switch(String(stato || "").trim()){
+    case "Act": return "done";
+    case "Do": return "progress";
+    case "Check": return "check";
+    default: return "todo";
+  }
+}
+function renderHomework(homework){
+  if(!homework.length){ document.getElementById("homeworkBody").innerHTML = `<div class="ap-empty">${t("empty_homework")}</div>`; return; }
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById("homeworkBody").innerHTML = homework.map(h => {
+    const overdue = h.deadline && h.deadline < today && h.stato !== "Act";
+    return `
+    <div class="ticket ${overdue ? 'overdue' : ''}">
+      <div class="prog mono">#${h.progressivo}</div>
+      <div class="info">
+        <div class="owner">${h.azione}</div>
+        <div class="deadline ${overdue ? 'overdue' : ''}">${h.owner} · ${t("deadline_prefix")} ${fmtDDMM(h.deadline)}</div>
+      </div>
+      <div class="status-pill ${pdcaClass(h.stato)}">${h.stato || "-"}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderRoadmap(roadmap){
+  if(!roadmap.length){ document.getElementById("roadmapTrack").innerHTML = `<div class="ap-empty">${t("empty_roadmap")}</div>`; return; }
+  document.getElementById("roadmapTrack").innerHTML = roadmap.map(n => {
+    const isWorkshop = n.tipo === "Workshop";
+    const icon = isWorkshop ? "WS" : "SC";
+    return `
+      <div class="roadmap-node ${pdcaClass(n.stato)}">
+        <div class="rm-shape ${isWorkshop ? 'circle' : 'diamond'}"><span class="rm-icon">${icon}</span></div>
+        <div class="rm-label">${n.etichetta}</div>
+        <div class="rm-date mono">${fmtDDMM(n.data)}</div>
+      </div>`;
+  }).join("");
+}
+
+function renderUpcoming(calendario){
+  const el = document.getElementById("upcomingBody");
+  const today = new Date().toISOString().slice(0,10);
+  const future = calendario.filter(c => c.data >= today);
+  const list = (future.length ? future : calendario).slice(0, 6);
+  if(!list.length){ el.innerHTML = `<div class="ap-empty">${t("empty_upcoming")}</div>`; return; }
+  el.innerHTML = list.map(c => {
+    const d = new Date(c.data + "T00:00");
+    return `
+      <div class="upcoming-item">
+        <div class="ud-block"><div class="ud-day">${d.getDate()}</div><div class="ud-mon">${ITA_MESI[d.getMonth()].toUpperCase()}</div></div>
+        <div class="ud-desc">${c.descrizione || "Incontro"}</div>
+      </div>`;
+  }).join("");
+}
+
+function apStatusClass(stato){
+  switch(String(stato || "").trim()){
+    case "Completato": case "Completed": return "done";
+    case "In corso": case "In progress": return "progress";
+    case "In ritardo": case "Delayed": return "late";
+    default: return "todo";
+  }
+}
+function renderActionPlan(ap){
+  const container = document.getElementById("actionPlanBody");
+  if(!ap || !ap.actions || !ap.actions.length){ container.innerHTML = `<div class="ap-empty">${t("empty_actionplan")}</div>`; return; }
+  const monthCols = ap.monthCols;
+  const cols = `260px 110px repeat(${monthCols.length}, 30px) 96px minmax(68px, 1fr)`;
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${now.getMonth()}`;
+
+  let html = `<div class="ap-wrap"><div class="ap-grid" style="grid-template-columns:${cols};">`;
+
+  // banda anno
+  html += `<div class="ap-yearband spacer"></div><div class="ap-yearband spacer"></div>`;
+  let i = 0;
+  while(i < monthCols.length){
+    const year = monthCols[i].date.getUTCFullYear();
+    let span = 0;
+    while(i + span < monthCols.length && monthCols[i + span].date.getUTCFullYear() === year) span++;
+    html += `<div class="ap-yearband" style="grid-column:span ${span};">${year}</div>`;
+    i += span;
+  }
+  html += `<div class="ap-yearband spacer"></div><div class="ap-yearband spacer"></div>`;
+
+  // intestazioni
+  html += `<div class="ap-headcell label">${t("col_action")}</div><div class="ap-headcell resp">${t("col_resp")}</div>`;
+  monthCols.forEach(mc => {
+    const isToday = `${mc.date.getUTCFullYear()}-${mc.date.getUTCMonth()}` === todayKey;
+    html += `<div class="ap-headcell month${isToday ? ' today' : ''}">${ITA_MESI[mc.date.getUTCMonth()]}</div>`;
+  });
+  html += `<div class="ap-headcell status">${t("col_status")}</div><div class="ap-headcell">${t("col_impact")}</div>`;
+
+  // righe
+  ap.actions.forEach((a, rowIdx) => {
+    const cls = apStatusClass(a.stato);
+    const rowBg = rowIdx % 2 ? "background:var(--panel-alt);" : "";
+    html += `<div class="ap-cell label" style="${rowBg}">${a.azione}</div>`;
+    html += `<div class="ap-cell resp" style="${rowBg}">${a.responsabile || ""}</div>`;
+    a.months.forEach((m, mi) => {
+      if(!m.active){ html += `<div class="ap-cell month" style="${rowBg}"></div>`; return; }
+      const isStart = mi === 0 || !a.months[mi - 1].active;
+      const isEnd = mi === a.months.length - 1 || !a.months[mi + 1].active;
+      const pad = `padding-left:${isStart ? 3 : 0}px;padding-right:${isEnd ? 3 : 0}px;${rowBg}`;
+      const shape = `${isStart ? " run-start" : ""}${isEnd ? " run-end" : ""}`;
+      html += `<div class="ap-cell month" style="${pad}"><div class="ap-month ${cls}${shape}"></div></div>`;
+    });
+    html += `<div class="ap-cell status" style="${rowBg}"><span class="status-pill ${cls}">${statusLabel(a.stato) || "-"}</span></div>`;
+    html += `<div class="ap-cell" style="${rowBg}">${a.impact || ""}</div>`;
+  });
+
+  html += `</div></div>`;
+  container.innerHTML = html;
+}
+
+function renderReportGiorno(reportGiorno){
+  if(!reportGiorno.length){ document.getElementById("reportGiornoBody").innerHTML = `<div class="ap-empty">${t("empty_report_giorno")}</div>`; return; }
+  const latest = [...reportGiorno].sort((a,b) => new Date(b.data) - new Date(a.data))[0];
+  document.getElementById("reportGiornoBody").innerHTML = `
+    <div class="report-date">${fmtDDMM(latest.data)}/${latest.data.slice(0,4)}</div>
+    <div class="report-title">${latest.titolo}</div>
+    <div class="report-text">${latest.sintesi}</div>
+    <div class="report-author">${t("author_prefix")} ${latest.autore}</div>`;
+}
+
+/* ---- Materiali / Report / Foto: elenco da Excel, raggruppato per colonna "Gruppo" (es. workshop) ---- */
+function groupBy(items){
+  const order = [];
+  const map = {};
+  items.forEach(it => {
+    const key = (it.gruppo || "").trim() || t("group_general");
+    if(!map[key]){ map[key] = []; order.push(key); }
+    map[key].push(it);
+  });
+  return order.map(key => [key, map[key]]);
+}
+function renderLinkList(items, containerId){
+  const el = document.getElementById(containerId);
+  if(!items.length){ el.innerHTML = `<div class="ap-empty">${t("empty_link_generic")}</div>`; return; }
+  el.innerHTML = groupBy(items).map(([gruppo, list]) => `
+    <div class="link-group">
+      <div class="link-group-head">${gruppo}</div>
+      ${list.map(it => `
+        <a class="file-link" href="${it.link || '#'}" target="_blank" rel="noopener">
+          <span class="dot"></span>
+          <span class="fname">${it.nome}</span>
+          ${it.data ? `<span class="fdate">${fmtDDMM(it.data)}</span>` : ''}
+        </a>`).join("")}
+    </div>`).join("");
+}
+function renderMateriali(items){ renderLinkList(items, "materialiBody"); }
+function renderReport(items){ renderLinkList(items, "reportBody"); }
+function renderFoto(items){
+  const el = document.getElementById("fotoBody");
+  if(!items.length){ el.innerHTML = `<div class="ap-empty">${t("empty_foto")}</div>`; return; }
+  el.innerHTML = groupBy(items).map(([gruppo, list]) => `
+    <div class="link-group">
+      <div class="link-group-head">${gruppo}</div>
+      <div class="photo-grid">
+        ${list.map(it => `
+          <a class="photo-tile" href="${it.link || '#'}" target="_blank" rel="noopener">
+            \u{1F4F7}
+            <div class="cap">${it.nome}${it.data ? ' · ' + fmtDDMM(it.data) : ''}</div>
+          </a>`).join("")}
+      </div>
+    </div>`).join("");
+}
+
+function parseBowling(wb){
+  const rows = sheetAOA(wb, "Bowling Chart");
+  if(rows.length < 2) return { weekLabels: [], kpis: [] };
+  const header = rows[0];
+  const weekLabels = header.slice(6).filter(h => String(h || "").trim() !== "");
+  const nWeeks = weekLabels.length;
+  const kpis = [];
+  for(let i = 1; i < rows.length; i += 2){
+    const planRow = rows[i];
+    const actRow = rows[i + 1] || [];
+    if(!planRow || !planRow[0]) continue;
+    const plan = planRow.slice(6, 6 + nWeeks).map(v => v === "" ? null : Number(v));
+    const act = actRow.slice(6, 6 + nWeeks).map(v => v === "" ? null : Number(v));
+    kpis.push({
+      kpi: planRow[0], responsabile: planRow[1] || "", baseline: planRow[2], target: planRow[3], unita: planRow[4] || "",
+      plan, act
+    });
+  }
+  return { weekLabels, kpis };
+}
+
+/* ================= CHART ================= */
+function buildChartSVG(k, weekLabels){
+  const W = 1000, H = 150, padL = 34, padR = 10, padT = 14, padB = 20;
+  const n = weekLabels.length;
+  const allVals = [];
+  k.plan.forEach(v => { if(v !== null && !isNaN(v)) allVals.push(v); });
+  k.act.forEach(v => { if(v !== null && !isNaN(v)) allVals.push(v); });
+  if(typeof k.target === "number") allVals.push(k.target);
+  if(typeof k.baseline === "number") allVals.push(k.baseline);
+  if(!allVals.length) return `<svg viewBox="0 0 ${W} ${H}"></svg>`;
+
+  let min = Math.min(...allVals), max = Math.max(...allVals);
+  if(min === max){ min -= 1; max += 1; }
+  const span = max - min;
+  min -= span * 0.1; max += span * 0.1;
+
+  const x = i => padL + (i / Math.max(n - 1, 1)) * (W - padL - padR);
+  const y = v => H - padB - ((v - min) / (max - min)) * (H - padT - padB);
+
+  const pathFor = arr => {
+    let d = "", started = false;
+    arr.forEach((v, i) => {
+      if(v === null || isNaN(v)){ started = false; return; }
+      d += (started ? " L " : " M ") + x(i).toFixed(1) + " " + y(v).toFixed(1);
+      started = true;
+    });
+    return d;
+  };
+
+  const planPath = pathFor(k.plan);
+  const actPath = pathFor(k.act);
+  const targetY = typeof k.target === "number" ? y(k.target).toFixed(1) : null;
+  const baselineY = typeof k.baseline === "number" ? y(k.baseline).toFixed(1) : null;
+
+  const ticks = [];
+  for(let i = 0; i < n; i += Math.max(1, Math.ceil(n / 8))) ticks.push(i);
+  if(ticks[ticks.length - 1] !== n - 1) ticks.push(n - 1);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`;
+  svg += `<line x1="${padL}" y1="${padT}" x2="${padL}" y2="${H-padB}" stroke="var(--line)" stroke-width="1"/>`;
+  svg += `<line x1="${padL}" y1="${H-padB}" x2="${W-padR}" y2="${H-padB}" stroke="var(--line)" stroke-width="1"/>`;
+  if(baselineY !== null){
+    svg += `<line x1="${padL}" y1="${baselineY}" x2="${W-padR}" y2="${baselineY}" stroke="var(--amber)" stroke-width="1" stroke-dasharray="2 3" opacity="0.8"/>`;
+  }
+  if(targetY !== null){
+    svg += `<line x1="${padL}" y1="${targetY}" x2="${W-padR}" y2="${targetY}" stroke="var(--green)" stroke-width="1" stroke-dasharray="4 3" opacity="0.8"/>`;
+    svg += `<text x="${W-padR}" y="${Number(targetY)-4}" text-anchor="end" font-size="9" fill="var(--green)" font-family="IBM Plex Mono, monospace">Target ${k.target}</text>`;
+  }
+  ticks.forEach(i => {
+    svg += `<text x="${x(i).toFixed(1)}" y="${H-4}" text-anchor="middle" font-size="8" fill="var(--muted)" font-family="IBM Plex Mono, monospace">${weekLabels[i]}</text>`;
+  });
+  svg += `<text x="${padL-4}" y="${(padT+4)}" text-anchor="end" font-size="8" fill="var(--muted)">${max.toFixed(1)}</text>`;
+  svg += `<text x="${padL-4}" y="${H-padB}" text-anchor="end" font-size="8" fill="var(--muted)">${min.toFixed(1)}</text>`;
+
+  if(planPath) svg += `<path d="${planPath}" fill="none" stroke="var(--muted)" stroke-width="2" stroke-dasharray="5 3"/>`;
+  if(actPath) svg += `<path d="${actPath}" fill="none" stroke="var(--blue)" stroke-width="2.2"/>`;
+  const higherBetter = (typeof k.target === "number" && typeof k.baseline === "number") ? (k.target >= k.baseline) : true;
+  k.act.forEach((v, i) => {
+    if(v === null || isNaN(v)) return;
+    const cx = x(i).toFixed(1), cy = y(v).toFixed(1);
+    let labelColor = "var(--blue)";
+    if(typeof k.target === "number"){
+      const onTarget = higherBetter ? v >= k.target : v <= k.target;
+      labelColor = onTarget ? "var(--green)" : "var(--red)";
+    }
+    svg += `<circle cx="${cx}" cy="${cy}" r="3" fill="var(--blue)"/>`;
+    svg += `<text x="${cx}" y="${Number(cy)-7}" text-anchor="middle" font-size="8" fill="${labelColor}" font-family="IBM Plex Mono, monospace" font-weight="600">${v}</text>`;
+  });
+  svg += `</svg>`;
+  return svg;
+}
+
+function renderBowling(data){
+  const wrap = document.getElementById("bowlingWrap");
+  if(!data.kpis.length){
+    wrap.innerHTML = `<div class="empty-state"><div class="big">${t("empty_bowling_title")}</div>${t("empty_bowling_sub")}</div>`;
+    return;
+  }
+  wrap.innerHTML = data.kpis.map(k => `
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="kpi-name">${k.kpi}</div>
+          ${k.responsabile ? `<div class="kpi-resp">${k.responsabile}</div>` : ""}
+        </div>
+        <div class="kpi-stats">
+          <div class="kpi-stat baseline"><span class="lbl">Baseline</span><span class="val">${k.baseline ?? "-"} ${k.unita}</span></div>
+          <div class="kpi-stat target"><span class="lbl">Target</span><span class="val">${k.target ?? "-"} ${k.unita}</span></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap">${buildChartSVG(k, data.weekLabels)}</div>
+        <div class="legend">
+          <div class="legend-item"><span class="legend-swatch" style="background:var(--amber);"></span>Baseline</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:var(--muted); opacity:.7;"></span>Plan</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:var(--blue);"></span>Act</div>
+          <div class="legend-item"><span class="legend-swatch" style="background:var(--green);"></span>Target</div>
+        </div>
+      </div>
+    </div>`).join("");
+}
+
+
+function applyConfig(config){
+  document.getElementById("companyName").textContent = config["Nome Azienda"] || "Nome Azienda Cliente";
+  const logo = document.getElementById("companyLogo");
+  const logoUrl = config["Logo Azienda"];
+  if(logoUrl && /^https?:\/\//.test(logoUrl)){
+    logo.src = logoUrl;
+    logo.onload = () => { logo.style.display = "block"; };
+    logo.onerror = () => { logo.style.display = "none"; };
+  }
+
+  const backendLink = document.getElementById("backendLink");
+  let backendUrl = config["Link file Backend (Excel)"] || getActiveDropboxUrl();
+  if(backendUrl){
+    backendUrl = backendUrl.replace(/([?&])dl=1/, "$1dl=0"); // apre l'anteprima/editor Dropbox, non un download forzato
+    backendLink.href = backendUrl;
+    backendLink.style.display = "inline-flex";
+  }
+}
+
+function renderAll(data){
+  applyConfig(data.config);
+  renderTeam(data.team);
+  renderVisit(data.agenda, data.team);
+  renderHomework(data.homework);
+  renderRoadmap(data.roadmap);
+  renderUpcoming(data.calendario || []);
+  renderActionPlan(data.actionPlan);
+  renderReportGiorno(data.reportGiorno);
+  renderMateriali(data.materiali || []);
+  renderReport(data.report || []);
+  renderFoto(data.foto || []);
+  document.getElementById("companyNameBowling").textContent = data.config["Nome Azienda"] || "Nome Azienda Cliente";
+  renderBowling(data.bowling || { weekLabels: [], kpis: [] });
+}
+
+function applyBanner(usingFallback, errorMsg){
+  const banner = document.getElementById("dataBanner");
+  const bannerB = document.getElementById("dataBannerBowling");
+  if(usingFallback){
+    const msg = getActiveDropboxUrl() ? t("banner_error")(errorMsg) : t("banner_noconfig");
+    banner.style.display = "block"; banner.textContent = msg;
+    bannerB.style.display = "block"; bannerB.textContent = msg;
+  }else{
+    banner.style.display = "none";
+    bannerB.style.display = "none";
+  }
+}
+
+async function init(){
+  let data = FALLBACK;
+  let usingFallback = true;
+  let errorMsg = "";
+  try{
+    const wb = await loadWorkbookFromDropbox(getActiveDropboxUrl());
+    data = {
+      config: parseConfig(wb), team: parseTeam(wb), agenda: parseAgende(wb), homework: parseHomework(wb),
+      roadmap: parseRoadmap(wb), calendario: parseCalendario(wb), actionPlan: parseActionPlan(wb), reportGiorno: parseReportGiorno(wb),
+      materiali: parseLinkSheet(wb, "Materiali"), report: parseLinkSheet(wb, "Report"), foto: parseLinkSheet(wb, "Foto"),
+      bowling: parseBowling(wb)
+    };
+    usingFallback = false;
+  }catch(err){
+    errorMsg = err.message;
+    console.warn("Dropbox non raggiungibile, mostro dati di esempio:", errorMsg);
+  }
+
+  LAST_DATA = data; LAST_FALLBACK = usingFallback; LAST_ERR = errorMsg;
+  renderAll(data);
+  applyBanner(usingFallback, errorMsg);
+}
+init();
+</script>
+
+</body>
+</html>
